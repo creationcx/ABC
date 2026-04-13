@@ -3,184 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ABC 聽力超級挑戰</title>
+    <title>ABC 莫蘭迪冒險</title>
     <style>
-        body { margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #FFDE59; font-family: 'Arial', sans-serif; transition: 0.2s; overflow: hidden; }
+        /* 莫蘭迪色系定義 */
+        :root {
+            --bg-main: #E2E2D5;     /* 米灰色 */
+            --bg-correct: #A3B18A;  /* 莫蘭迪綠 */
+            --bg-wrong: #B5838D;    /* 莫蘭迪粉紅 */
+            --text-dark: #6B705C;   /* 深橄欖綠文字 */
+            --card-white: #F8F9FA;  /* 柔軟白 */
+            --btn-blue: #8DA9C4;    /* 灰藍色 */
+        }
+
+        body { 
+            margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            height: 100vh; background: var(--bg-main); font-family: 'Helvetica', 'Arial', sans-serif; 
+            transition: background 0.6s; overflow: hidden; cursor: pointer;
+        }
         
-        #question { font-size: 48px; margin-bottom: 30px; color: #333; font-weight: bold; text-shadow: 2px 2px 0 rgba(255,255,255,0.5); text-align: center; }
+        #question { font-size: 40px; margin-bottom: 40px; color: var(--text-dark); font-weight: bold; text-align: center; }
         
-        .options-container { display: flex; gap: 25px; }
+        .options-container { display: flex; gap: 20px; }
         
         .option { 
-            width: 160px; height: 160px; 
-            background: white; border-radius: 25px; 
+            width: 150px; height: 150px; 
+            background: var(--card-white); border-radius: 30px; 
             display: flex; justify-content: center; align-items: center; 
-            font-size: 100px; font-weight: bold; color: #333;
-            box-shadow: 0 12px 0 #ccc; cursor: pointer; transition: 0.1s;
+            font-size: 90px; font-weight: bold; color: var(--text-dark);
+            box-shadow: 0 8px 0 rgba(0,0,0,0.05); transition: 0.2s;
             user-select: none; -webkit-tap-highlight-color: transparent;
         }
         
-        .option:active { transform: translateY(10px); box-shadow: 0 2px 0 #ccc; }
-        
-        /* 答對時的瘋狂旋轉動畫 */
-        @keyframes correct-spin {
-            0% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.5) rotate(720deg); background: #7ED957; color: white;}
-            100% { transform: scale(1) rotate(1440deg); }
+        /* 答對時的縮放動畫 */
+        @keyframes success-pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
-        .correct-animate { animation: correct-spin 1s ease-out; }
-        
-        /* 答錯時的震動動畫 */
-        @keyframes wrong-shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-15px); }
-            50% { transform: translateX(15px); }
-            75% { transform: translateX(-15px); }
-            100% { transform: translateX(0); }
-        }
-        .wrong-animate { animation: wrong-shake 0.4s; }
+        .correct-animate { animation: success-pop 0.5s ease; background: var(--bg-correct) !important; color: white !important; }
 
-        #msg-btn { margin-top: 60px; padding: 18px 40px; font-size: 28px; border-radius: 50px; border: none; background: #5271FF; color: white; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        #msg-btn { 
+            margin-top: 50px; padding: 12px 30px; font-size: 20px; border-radius: 50px; 
+            border: 2px solid var(--btn-blue); background: transparent; color: var(--btn-blue); 
+            cursor: pointer; font-weight: bold;
+        }
     </style>
 </head>
-<body>
+<body onclick="initGame()">
 
-    <div id="question">準備好了嗎？</div>
+    <div id="question">點擊畫面開始</div>
     
     <div class="options-container">
-        <div class="option" onclick="checkAnswer(0)" id="opt0">?</div>
-        <div class="option" onclick="checkAnswer(1)" id="opt1">?</div>
-        <div class="option" onclick="checkAnswer(2)" id="opt2">?</div>
+        <div class="option" onclick="checkAnswer(0, event)" id="opt0">?</div>
+        <div class="option" onclick="checkAnswer(1, event)" id="opt1">?</div>
+        <div class="option" onclick="checkAnswer(2, event)" id="opt2">?</div>
     </div>
 
-    <button id="msg-btn" onclick="speakQuestion()">再聽一次題目</button>
+    <button id="msg-btn" onclick="speakQuestion(event)">🔊 再聽一次題目</button>
 
     <script>
         const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
         let correctAnswer = "";
-        let isCelebrating = false; // 防止連續點擊
+        let isCelebrating = false;
+        let gameStarted = false;
 
-        // 誇張的讚美詞清單
-        const praises = [
-            "Unbelievable! You are a genius!",
-            "Wow! Spectacular! Absolutely correct!",
-            "Bingo! You are the champion!",
-            "Amazing! Your brain is super powerful!",
-            "Yes! You did it! So proud of you!",
-            "Perfect! 100 points for you!"
-        ];
+        function initGame() {
+            if (!gameStarted) {
+                gameStarted = true;
+                nextRound();
+            }
+        }
 
         function nextRound() {
-            if (isCelebrating) return;
             isCelebrating = false;
-            
-            // 重設所有樣式
-            document.body.style.background = "#FFDE59";
+            document.body.style.background = "#E2E2D5"; // 回到米灰色
             document.getElementById('question').innerText = "Where is...?";
-            document.getElementById('question').style.color = "#333";
             
-            for(let i=0; i<3; i++) {
-                const opt = document.getElementById('opt' + i);
-                opt.classList.remove('correct-animate', 'wrong-animate');
-                opt.style.background = "white";
-                opt.style.color = "#333";
-                opt.style.display = "flex"; // 重新顯示
-            }
-            
+            // 洗牌並選出三個字母
             const shuffled = [...letters].sort(() => 0.5 - Math.random());
             const choices = shuffled.slice(0, 3);
             correctAnswer = choices[Math.floor(Math.random() * 3)];
             
-            document.getElementById('opt0').innerText = choices[0];
-            document.getElementById('opt1').innerText = choices[1];
-            document.getElementById('opt2').innerText = choices[2];
-
+            for(let i=0; i<3; i++) {
+                const opt = document.getElementById('opt' + i);
+                opt.innerText = choices[i];
+                opt.classList.remove('correct-animate');
+                opt.style.visibility = "visible";
+            }
             speakQuestion();
         }
 
-        function speakQuestion() {
-            if (isCelebrating) return;
+        function speakQuestion(e) {
+            if(e) e.stopPropagation(); // 防止觸發 body 的點擊
             window.speechSynthesis.cancel();
-            const msg = new SpeechSynthesisUtterance(`Can you find letter... ${correctAnswer}?`);
+            const msg = new SpeechSynthesisUtterance(`Where is ${correctAnswer}?`);
             msg.lang = 'en-US';
-            msg.rate = 0.7; // 慢速清晰
+            msg.rate = 0.8;
             window.speechSynthesis.speak(msg);
         }
 
-        function checkAnswer(index) {
-            if (isCelebrating) return; // 正在慶祝時不能點擊
+        function checkAnswer(index, e) {
+            e.stopPropagation();
+            if (isCelebrating) return;
             
             const selectedOpt = document.getElementById('opt' + index);
-            const selectedText = selectedOpt.innerText;
-            
-            if (selectedText === correctAnswer) {
-                isCelebrating = true; // 開始慶祝
-                
-                // --- 1. 視覺誇張特效 ---
-                // 隱藏錯的，只留下對的
-                for(let i=0; i<3; i++) {
-                    if (i !== index) document.getElementById('opt' + i).style.display = "none";
-                }
-                
-                // 答對的按鈕瘋狂旋轉
+            if (selectedOpt.innerText === correctAnswer) {
+                isCelebrating = true;
                 selectedOpt.classList.add('correct-animate');
+                document.body.style.background = "#A3B18A"; // 變莫蘭迪綠
                 
-                // 題目文字變彩虹
-                document.getElementById('question').innerText = "⭐ EXCELLENT! ⭐";
-                document.getElementById('question').style.color = "#8C52FF";
-
-                // 背景彩虹閃爍 (快速變色 3 次)
-                let rainbowColors = ['#FF5757', '#7ED957', '#5271FF', '#FF66C4'];
-                let colorIdx = 0;
-                let rainbowTimer = setInterval(() => {
-                    document.body.style.background = rainbowColors[colorIdx % rainbowColors.length];
-                    colorIdx++;
-                }, 1500); // 1.5 秒換一次色
-
-                // --- 2. 聽覺誇張特效 ---
                 window.speechSynthesis.cancel();
-                // 隨機選一個誇張讚美詞
-                const praiseText = praises[Math.floor(Math.random() * praises.length)];
-                
-                const praise = new SpeechSynthesisUtterance(praiseText + " ... The answer is " + correctAnswer);
+                const praise = new SpeechSynthesisUtterance("Wonderful! " + correctAnswer);
                 praise.lang = 'en-US';
-                praise.rate = 1.0; // 語速正常，聽起來興奮
-                praise.pitch = 1.3; // 音調調高，聽起來更開心
                 window.speechSynthesis.speak(praise);
                 
-                // 3.5 秒後自動下一題 (等慶祝完)
-                setTimeout(() => {
-                    clearInterval(rainbowTimer); // 停止閃爍
-                    nextRound();
-                }, 3500);
-
+                // 延長一點時間再進入下一題，避免卡住
+                setTimeout(nextRound, 1800);
             } else {
-                // --- 答錯的反應 ---
-                selectedOpt.classList.add('wrong-animate'); // 震動
-                document.body.style.background = "#FF5757"; // 變紅
-                
+                document.body.style.background = "#B5838D"; // 變莫蘭迪粉
                 window.speechSynthesis.cancel();
-                const fail = new SpeechSynthesisUtterance("Oops! Try again!");
+                const fail = new SpeechSynthesisUtterance("Try again");
                 fail.lang = 'en-US';
                 window.speechSynthesis.speak(fail);
                 
-                // 0.5 秒後恢復背景顏色，讓小孩繼續嘗試
                 setTimeout(() => {
-                    document.body.style.background = "#FFDE59";
-                    selectedOpt.classList.remove('wrong-animate');
-                }, 500);
+                    if(!isCelebrating) document.body.style.background = "#E2E2D5";
+                }, 800);
             }
         }
-
-        // 頁面載入後自動開始
-        window.onload = () => {
-            // 第一次需要使用者點擊才能發聲，所以把題目文字改一下
-            document.getElementById('question').innerText = "點擊這裡開始！";
-            document.body.onclick = function() {
-                document.body.onclick = null; // 取消原本的點擊事件
-                nextRound();
-            }
-        };
     </script>
 </body>
 </html>
