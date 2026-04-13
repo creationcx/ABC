@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Morandi Game</title>
+    <style>
+        :root {
+            --bg-base: #E2E2D5;     /* 莫蘭迪米灰 */
+            --bg-correct: #92A18D;  /* 答對：莫蘭迪綠 */
+            --bg-wrong: #B5838D;    /* 答錯：莫蘭迪粉 */
+            --card: #F4F1DE;        /* 卡片白 */
+            --text: #6B705C;        /* 深橄欖綠 */
+        }
+
+        /* 確保 body 撐滿螢幕，隱藏溢出內容 */
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: var(--bg-base); }
+        
+        body { 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: background 0.5s ease;
+        }
+        
+        #question { font-size: 36px; margin-bottom: 40px; color: var(--text); font-weight: bold; height: 50px; }
+        
+        .options-container { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; max-width: 600px; }
+        
+        .option { 
+            width: 100px; height: 100px; 
+            background: var(--card); border-radius: 20px; 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 60px; font-weight: bold; color: var(--text);
+            box-shadow: 0 6px 0 rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 答對動畫：放大且發光 */
+        .correct-active { 
+            background: #A3B18A !important; 
+            color: white !important; 
+            transform: scale(1.15); 
+            box-shadow: 0 0 25px rgba(163, 177, 138, 0.8);
+            z-index: 10;
+        }
+
+        #msg-btn { 
+            margin-top: 50px; padding: 12px 35px; font-size: 20px; border-radius: 50px; 
+            border: 2px solid var(--text); background: rgba(255,255,255,0.3); color: var(--text); 
+            cursor: pointer; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="question">Click to Start</div>
+    
+    <div class="options-container">
+        <div class="option" id="opt0" onclick="checkAnswer(0)">?</div>
+        <div class="option" id="opt1" onclick="checkAnswer(1)">?</div>
+        <div class="option" id="opt2" onclick="checkAnswer(2)">?</div>
+        <div class="option" id="opt3" onclick="checkAnswer(3)">?</div>
+        <div class="option" id="opt4" onclick="checkAnswer(4)">?</div>
+    </div>
+
+    <button id="msg-btn" onclick="speakQuestion(event)">🔊 Repeat</button>
+
+    <script>
+        const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+        let correctAnswer = "";
+        let isCelebrating = false;
+        let hasStarted = false;
+
+        // 多元化的讚美詞庫
+        const praises = [
+            "Excellent!", "You're so smart!", "Wonderful!", "Great job!", 
+            "Amazing!", "You found it!", "Bingo!", "Super cool!", 
+            "Fantastic!", "Perfect!"
+        ];
+
+        // 啟動點擊事件
+        document.body.addEventListener('click', function() {
+            if (!hasStarted) {
+                hasStarted = true;
+                nextRound();
+            }
+        });
+
+        function nextRound() {
+            isCelebrating = false;
+            document.body.style.background = "var(--bg-base)";
+            document.getElementById('question').innerText = "Where is...?";
+            
+            const shuffled = [...letters].sort(() => 0.5 - Math.random());
+            const choices = shuffled.slice(0, 5);
+            correctAnswer = choices[Math.floor(Math.random() * 5)];
+            
+            for(let i=0; i<5; i++) {
+                const opt = document.getElementById('opt' + i);
+                opt.innerText = choices[i];
+                opt.classList.remove('correct-active');
+                opt.style.display = "flex";
+            }
+            speakQuestion();
+        }
+
+        function speakQuestion(e) {
+            if(e) e.stopPropagation();
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance(`Can you find the letter... ${correctAnswer}?`);
+            msg.lang = 'en-US';
+            msg.rate = 0.55; // 極慢語速，適合幼兒
+            window.speechSynthesis.speak(msg);
+        }
+
+        function checkAnswer(index) {
+            if (isCelebrating || !hasStarted) return;
+            
+            const selectedOpt = document.getElementById('opt' + index);
+            if (selectedOpt.innerText === correctAnswer) {
+                isCelebrating = true;
+                selectedOpt.classList.add('correct-active');
+                document.body.style.background = "var(--bg-correct)";
+                
+                window.speechSynthesis.cancel();
+                // 隨機選一個讚美詞
+                const randomPraise = praises[Math.floor(Math.random() * praises.length)];
+                const praiseMsg = new SpeechSynthesisUtterance(`${randomPraise} That is ${correctAnswer}`);
+                praiseMsg.lang = 'en-US';
+                praiseMsg.rate = 0.7;
+                window.speechSynthesis.speak(praiseMsg);
+                
+                setTimeout(nextRound, 2200);
+            } else {
+                document.body.style.background = "var(--bg-wrong)";
+                window.speechSynthesis.cancel();
+                const fail = new SpeechSynthesisUtterance("Try again");
+                fail.lang = 'en-US';
+                fail.rate = 0.8;
+                window.speechSynthesis.speak(fail);
+                
+                setTimeout(() => {
+                    if(!isCelebrating) document.body.style.background = "var(--bg-base)";
+                }, 600);
+            }
+        }
+    </script>
+</body>
+</html>
